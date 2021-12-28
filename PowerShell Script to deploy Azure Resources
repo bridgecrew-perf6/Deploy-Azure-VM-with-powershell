@@ -1,0 +1,54 @@
+## Step 1: Creating Resource Group ##
+
+$rg = @{
+Name = 'RG1'
+Location = 'EastUS'
+}
+New-AzResourceGroup @rg
+
+## Step 2: Creating Vnet ##
+
+$vnet = @{
+Name = 'Vnet1'
+ResourceGroupName = 'RG1'
+Location = 'EastUS'
+AddressPrefix = '10.0.0.0/16'
+}
+$virtualNetwork = New-AzVirtualNetwork @vnet
+
+## Step3: Creating Subnet ##
+
+$subnet = @{
+Name = 'default'
+VirtualNetwork = $virtualNetwork
+AddressPrefix = '10.0.0.0/16'
+}
+$subnetConfig = Add-AzVirtualNetworkSubnetConfig @subnet
+
+## Step 4: Associate the subnet to the virtual network ##
+
+$virtualNetwork | Set-AzVirtualNetwork
+
+
+## Step 5: Creating a NSG ##
+
+New-AzNetworkSecurityGroup -Name "NSG1" -ResourceGroupName "RG1"  -Location  "eastus"
+
+## Step 6: Creating a Rule for the NSG ##
+
+$RGname="RG1"
+$port=3389
+$rulename="allowAppPort$port"
+$nsgname="NSG1"
+
+# Get the NSG resource
+$nsg = Get-AzNetworkSecurityGroup -Name $nsgname -ResourceGroupName $RGname
+
+# Add the inbound security rule.
+$nsg | Add-AzNetworkSecurityRuleConfig -Name $rulename -Description "Allow app port" -Access Allow `
+    -Protocol * -Direction Inbound -Priority 1000 -SourceAddressPrefix "*" -SourcePortRange * `
+    -DestinationAddressPrefix * -DestinationPortRange $port
+
+# Update the NSG.
+$nsg | Set-AzNetworkSecurityGroup
+
